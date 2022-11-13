@@ -2,6 +2,7 @@ package stringhandle
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -9,7 +10,7 @@ import (
 
 // 替换操作
 
-func StringReplace(m []primitive.M, new string, old string) {
+func StringReplace(m []primitive.M, new string, old string) []primitive.M {
 	//存储处理好后的数据
 	var newM []primitive.M
 
@@ -33,11 +34,13 @@ func StringReplace(m []primitive.M, new string, old string) {
 				switch vv.(type) {
 				case primitive.M:
 					{
-						fmt.Printf("%T\n", vv)
-					}
-				case primitive.A:
-					{
-						fmt.Printf("%T\n", vv)
+						filter, t := MRecursion(vv, new, old)
+						if t == 1 {
+							//存储过滤后的值
+							myMap[key] = filter
+						} else {
+							myMap[key] = filter["leeSlice"]
+						}
 					}
 				default:
 					{
@@ -56,6 +59,80 @@ func StringReplace(m []primitive.M, new string, old string) {
 		newM = append(newM, myMap)
 	}
 
-	fmt.Println(newM)
+	return newM
+}
 
+// MRecursion primitive.M的递归处理函数  返回值：处理过的数据，还有是否是map值 1是map 0是slice  如果是 slice 需要用 key: leeSlice 获取slice
+func MRecursion(m interface{}, new string, old string) (map[string]interface{}, int) {
+
+	//定义返回的类型
+	var flag int = 1
+	//定义一个map用来存储处理好的值
+	myMap := make(map[string]interface{})
+
+	// 使用反射 判断 m 是否是 map 类型
+	if reflect.TypeOf(m).Kind() == reflect.Map {
+
+		// 取值
+		value := reflect.ValueOf(m)
+
+		// 判断是否是空值
+		if !value.IsValid() {
+			fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
+		}
+
+		// 迭代值
+		val := value.MapRange()
+
+		//开始遍历值
+		for val.Next() {
+			//将 key 转 string 除去两边空格
+			k := strings.TrimSpace(fmt.Sprintln(val.Key()))
+			// 判断值是否为string
+			if val.Value().Elem().Kind() == reflect.String {
+				// 将 val 转 string  替换字符串
+				v := strings.Replace(fmt.Sprintln(val.Value()), old, new, -1)
+				//存储值 除去两边空格
+				myMap[k] = strings.TrimSpace(v)
+			} else {
+				myMap[k] = val.Value()
+			}
+		}
+	}
+
+	// 使用反射 判断 m 是否是 slice 类型
+	if reflect.TypeOf(m).Kind() == reflect.Slice {
+		// slice 类型
+		flag = 0
+		//定义一个切片 存储值
+		mySlice := make([]interface{}, 5)
+
+		// 取值
+		value := reflect.ValueOf(m)
+
+		// 判断是否是空值
+		if !value.IsValid() {
+			fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
+		}
+
+		// 开始遍历slice
+		value.Len()
+		for i := 0; i < value.Len(); i++ {
+			// 判断值是否为string
+			if value.Index(i).Elem().Kind() == reflect.String {
+				// 将 val 转 string  替换字符串
+				v := strings.Replace(fmt.Sprintln(value.Index(i)), old, new, -1)
+				//存储值 除去两边空格
+				mySlice[i] = strings.TrimSpace(v)
+			} else {
+				mySlice[i] = value.Index(i)
+			}
+		}
+
+		//将过滤好的slice存储到myMap
+		myMap["leeSlice"] = mySlice
+
+	}
+
+	return myMap, flag
 }
