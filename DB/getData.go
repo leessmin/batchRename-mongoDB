@@ -11,7 +11,7 @@ import (
 
 // 获取mongoDB集合中的数据
 
-// 传入 数据库的名字 集合的名字 返回查询到的结果
+// GetData 传入 数据库的名字 集合的名字 返回查询到的结果
 func GetData(dataName string, collName string) ([]primitive.M, error) {
 	// 连接集合
 	collection := Client.Database(dataName).Collection(collName)
