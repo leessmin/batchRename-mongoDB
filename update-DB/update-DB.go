@@ -13,9 +13,14 @@ import (
 
 var wg sync.WaitGroup
 
+var mu sync.Mutex
+
+// Count 计数操作文档的个数
+var Count int = 0
+
 // UpdateDB 更新数据库数据
 func UpdateDB() {
-	myArr := []string{"blog_info", "article"}
+	myArr := []string{"blog_info", "article", "userinfo"}
 
 	//遍历 数据库
 	for _, v := range myArr {
@@ -36,7 +41,7 @@ func UpdateDB() {
 			// 处理 替换 需要的字符
 			ms := stringhandle.StringReplace(m, "http://1.1.1.1:5500", "http://47.115.219.17:5500")
 
-			// 将处理好后的数据添加至mongoDB
+			// 将处理好后的数据更新至mongoDB
 			for _, mv := range ms {
 				// 获取id
 				id := mv["_id"]
@@ -52,8 +57,16 @@ func UpdateDB() {
 				if err != nil {
 					panic(err)
 				}
+
+				// 发送修改的文章数量到通道中
+				var cou int = int(result.ModifiedCount)
+
 				// 打印修改的文章
-				fmt.Println("修改的文章：", result.ModifiedCount)
+				fmt.Println("修改的文章：", cou)
+
+				mu.Lock()
+				Count += cou
+				mu.Unlock()
 			}
 		}(v)
 	}

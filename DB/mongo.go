@@ -25,5 +25,4 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintln("连接mongoDB时出现了错误:", err))
 	}
-	fmt.Println("连接mongoDB成功!!!")
 }

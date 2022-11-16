@@ -35,12 +35,7 @@ func StringReplace(m []primitive.M, new string, old string) []primitive.M {
 				case primitive.M:
 					{
 						filter, t := MRecursion(vv, new, old)
-						if t == 1 {
-							//存储过滤后的值
-							myMap[key] = filter
-						} else {
-							myMap[key] = filter["leeSlice"]
-						}
+						myMap[key] = filterMyMap(t, filter)
 					}
 				default:
 					{
@@ -70,6 +65,27 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 	//定义一个map用来存储处理好的值
 	myMap := make(map[string]interface{})
 
+	/*
+		未解决.......................................
+	*/
+	// 使用反射 判断 m 是否是 struct 类型
+	/*	if reflect.TypeOf(m).Kind() == reflect.Struct {
+
+			// 取值
+			value := reflect.ValueOf(&m).Elem()
+
+			// 判断是否是空值
+			if !value.IsValid() {
+				fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
+			}
+			rv := reflect.Indirect(value)
+			fmt.Println(rv.Type().Kind())
+			//for i := 0; i < value.NumField(); i++ {
+			//	fmt.Println(value.Field(i))
+			//}
+
+		}
+	*/
 	// 使用反射 判断 m 是否是 map 类型
 	if reflect.TypeOf(m).Kind() == reflect.Map {
 
@@ -95,7 +111,14 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 				//存储值 除去两边空格
 				myMap[k] = strings.TrimSpace(v)
 			} else {
+				// 暂时不做处理
 				myMap[k] = val.Value()
+
+				//不是字符串说明需要再次遍历
+
+				//递归 为解决
+				/*filter, t := MRecursion(val.Value(), new, old)
+				myMap[k] = filterMyMap(t, filter)*/
 			}
 		}
 	}
@@ -120,12 +143,20 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 		for i := 0; i < value.Len(); i++ {
 			// 判断值是否为string
 			if value.Index(i).Elem().Kind() == reflect.String {
+				fmt.Println(value.Index(i))
 				// 将 val 转 string  替换字符串
 				v := strings.Replace(fmt.Sprintln(value.Index(i)), old, new, -1)
 				//存储值 除去两边空格
 				mySlice[i] = strings.TrimSpace(v)
 			} else {
+				//暂时不做处理
 				mySlice[i] = value.Index(i)
+				//不是字符串说明需要再次遍历
+
+				//递归
+				/*filter, t := MRecursion(value.Index(i).Interface(), new, old)
+				mySlice[i] = filterMyMap(t, filter)*/
+
 			}
 		}
 
@@ -135,4 +166,14 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 	}
 
 	return myMap, flag
+}
+
+// 过滤好数据，到底是map还是slice等
+func filterMyMap(i int, myMap map[string]interface{}) interface{} {
+	if i == 1 {
+		//存储过滤后的值
+		return myMap
+	} else {
+		return myMap["leeSlice"]
+	}
 }
