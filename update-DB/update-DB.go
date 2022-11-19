@@ -52,7 +52,7 @@ func UpdateDB() {
 				// 更新的数据
 				update := bson.D{{Key: "$set", Value: mv}}
 				// 连接集合
-				coll := db.Client.Database("test").Collection(v)
+				coll := db.Client.Database(db.DBConfig.DBName).Collection(v)
 				// 更新
 				result, err := coll.UpdateOne(context.TODO(), filter, update)
 				// 判断是否出错
