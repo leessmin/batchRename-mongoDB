@@ -71,6 +71,7 @@ func ReadFile() error {
 		panic("读取配置文件出错")
 	}
 	fmt.Println("读取配置成功")
+	fmt.Println(db.DBConfig)
 
 	return nil
 }
@@ -80,5 +81,21 @@ func mySplit(str, cut string) string {
 	// 分割字符串
 	arr := strings.Split(str, cut)
 
-	return strings.TrimSpace(arr[1])
+	var s string = ""
+	// 只截取一个=号后面存在=则拼接
+	for key, v := range arr {
+		// 第一个跳过
+		if key == 0 {
+			continue
+		}
+
+		// 判断，如果不是第一个切出的字符串则要补加cut
+		if key > 1 {
+			s = fmt.Sprintln(s, cut, v)
+		} else {
+			s = fmt.Sprintln(s, v)
+		}
+	}
+
+	return strings.TrimSpace(s)
 }
