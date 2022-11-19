@@ -26,6 +26,8 @@ func main() {
 	// 退出程序
 	fmt.Println("操作完成!!!")
 	fmt.Println("按任意键退出...")
+	// 创建一个byte
 	b := make([]byte, 1)
+	// 等待用户输入  达到按任意键退出程序
 	os.Stdin.Read(b)
 }
