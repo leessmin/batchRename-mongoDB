@@ -117,6 +117,8 @@ func MRecursion(m interface{}, old string, new string) (map[string]interface{}, 
 					myMap[k] = val.Value().Interface()
 				case reflect.Map:
 					myMap[k] = traverseMap(val.Value().Interface(), old, new)
+				case reflect.Slice:
+					myMap[k] = traverseSlice(val.Value().Interface(), old, new)
 				default:
 					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
 					myMap[k] = fmt.Sprintln(val.Value().Interface())
@@ -175,6 +177,9 @@ func MRecursion(m interface{}, old string, new string) (map[string]interface{}, 
 				case reflect.Map:
 					// 遍历map 替换里面的值 然后再赋值
 					mySlice = append(mySlice, traverseMap(value.Index(i).Interface(), old, new))
+				case reflect.Slice:
+					// 遍历slice 替换里面的值 然后再赋值
+					mySlice = append(mySlice, traverseSlice(value.Index(i).Interface(), old, new))
 				default:
 					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
 					mySlice[i] = fmt.Sprintln(value.Index(i).Interface())
@@ -201,7 +206,7 @@ func filterMyMap(i int, myMap map[string]interface{}) interface{} {
 	}
 }
 
-// 遍历嵌套的数据 map类型
+// 遍历 嵌套的数据 map类型
 func traverseMap(m interface{}, old, new string) map[string]interface{} {
 
 	//定义一个map用来存储处理好的值
@@ -259,6 +264,8 @@ func traverseMap(m interface{}, old, new string) map[string]interface{} {
 					myMap[k] = val.Value().Interface()
 				case reflect.Map:
 					myMap[k] = traverseMap(val.Value().Interface(), old, new)
+				case reflect.Slice:
+					myMap[k] = traverseSlice(val.Value().Interface(), old, new)
 				default:
 					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
 					myMap[k] = fmt.Sprintln(val.Value().Interface())
@@ -270,4 +277,67 @@ func traverseMap(m interface{}, old, new string) map[string]interface{} {
 	}
 
 	return myMap
+}
+
+// 遍历 嵌套的数据 slice类型
+func traverseSlice(m interface{}, old, new string) []interface{} {
+
+	//定义一个切片 存储值
+	mySlice := make([]interface{}, 0)
+
+	// 取值
+	value := reflect.ValueOf(m)
+
+	// 判断是否是空值
+	if !value.IsValid() {
+		fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
+	}
+
+	// 开始遍历slice
+	for i := 0; i < value.Len(); i++ {
+		// 判断值是否为string
+		if value.Index(i).Elem().Kind() == reflect.String {
+			// 将 val 转 string  替换字符串
+			v := strings.Replace(fmt.Sprintln(value.Index(i)), old, new, -1)
+			//存储值 除去两边空格
+			mySlice = append(mySlice, strings.TrimSpace(v))
+		} else {
+
+			// 判断类型 根据类型 断言后赋值
+			switch value.Index(i).Elem().Kind() {
+			case reflect.Int:
+				mySlice = append(mySlice, value.Index(i).Interface().(int))
+			case reflect.Int8:
+				mySlice = append(mySlice, value.Index(i).Interface().(int8))
+			case reflect.Int16:
+				mySlice = append(mySlice, value.Index(i).Interface().(int16))
+			case reflect.Int32:
+				mySlice = append(mySlice, value.Index(i).Interface().(int32))
+			case reflect.Int64:
+				// 判断是否是primitive.DateTime 类型
+				switch value.Index(i).Interface().(type) {
+				case primitive.DateTime:
+					mySlice = append(mySlice, value.Index(i).Interface().(primitive.DateTime))
+				default:
+					mySlice = append(mySlice, value.Index(i).Interface().(int64))
+				}
+			case reflect.Bool:
+				mySlice = append(mySlice, value.Index(i).Interface().(bool))
+			case reflect.Interface:
+				mySlice = append(mySlice, value.Index(i).Interface())
+			case reflect.Map:
+				// 遍历map 替换里面的值 然后再赋值
+				mySlice = append(mySlice, traverseMap(value.Index(i).Interface(), old, new))
+			case reflect.Slice:
+				// 遍历slice 替换里面的值 然后再赋值
+				mySlice = append(mySlice, traverseSlice(value.Index(i).Interface(), old, new))
+			default:
+				// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
+				mySlice[i] = fmt.Sprintln(value.Index(i).Interface())
+			}
+
+		}
+	}
+
+	return mySlice
 }

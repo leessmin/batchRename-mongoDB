@@ -1,5 +1,10 @@
 package main
 
+/*
+	version: 0.1
+	Copyright (c) 2022-present, Leessmin(李思敏)
+*/
+
 import (
 	db "batchRename/DB"
 	readfile "batchRename/readFile"
