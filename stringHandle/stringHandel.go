@@ -32,9 +32,11 @@ func StringReplace(m []primitive.M, new string, old string) []primitive.M {
 			if !ok {
 				//不是字符串
 				switch vv.(type) {
-				case primitive.M:
+				case primitive.M,
+					primitive.A:
 					{
-						filter, t := MRecursion(vv, new, old)
+						filter, t := MRecursion(vv, old, new)
+
 						myMap[key] = filterMyMap(t, filter)
 					}
 				default:
@@ -58,37 +60,15 @@ func StringReplace(m []primitive.M, new string, old string) []primitive.M {
 }
 
 // MRecursion primitive.M的递归处理函数  返回值：处理过的数据，还有是否是map值 1是map 0是slice  如果是 slice 需要用 key: leeSlice 获取slice
-func MRecursion(m interface{}, new string, old string) (map[string]interface{}, int) {
+func MRecursion(m interface{}, old string, new string) (map[string]interface{}, int) {
 
 	//定义返回的类型
 	var flag int = 1
 	//定义一个map用来存储处理好的值
 	myMap := make(map[string]interface{})
 
-	/*
-		TODO 未解决.......................................
-	*/
-	// 使用反射 判断 m 是否是 struct 类型
-	/*	if reflect.TypeOf(m).Kind() == reflect.Struct {
-
-			// 取值
-			value := reflect.ValueOf(&m).Elem()
-
-			// 判断是否是空值
-			if !value.IsValid() {
-				fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
-			}
-			rv := reflect.Indirect(value)
-			fmt.Println(rv.Type().Kind())
-			//for i := 0; i < value.NumField(); i++ {
-			//	fmt.Println(value.Field(i))
-			//}
-
-		}
-	*/
 	// 使用反射 判断 m 是否是 map 类型
 	if reflect.TypeOf(m).Kind() == reflect.Map {
-
 		// 取值
 		value := reflect.ValueOf(m)
 
@@ -111,14 +91,29 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 				//存储值 除去两边空格
 				myMap[k] = strings.TrimSpace(v)
 			} else {
-				// 暂时不做处理
-				myMap[k] = val.Value()
 
-				//不是字符串说明需要再次遍历
-
-				//递归 为解决
-				/*filter, t := MRecursion(val.Value(), new, old)
-				myMap[k] = filterMyMap(t, filter)*/
+				// 判断类型 根据类型 断言后赋值
+				switch val.Value().Elem().Kind() {
+				case reflect.Int:
+					myMap[k] = val.Value().Interface().(int)
+				case reflect.Int8:
+					myMap[k] = val.Value().Interface().(int8)
+				case reflect.Int16:
+					myMap[k] = val.Value().Interface().(int16)
+				case reflect.Int32:
+					myMap[k] = val.Value().Interface().(int32)
+				case reflect.Int64:
+					myMap[k] = val.Value().Interface().(int64)
+				case reflect.Bool:
+					myMap[k] = val.Value().Interface().(bool)
+				case reflect.Interface:
+					myMap[k] = val.Value().Interface()
+				case reflect.Map:
+					myMap[k] = traverseMap(val.Value().Interface(), old, new)
+				default:
+					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
+					myMap[k] = fmt.Sprintln(val.Value().Interface())
+				}
 			}
 		}
 	}
@@ -128,7 +123,7 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 		// slice 类型
 		flag = 0
 		//定义一个切片 存储值
-		mySlice := make([]interface{}, 5)
+		mySlice := make([]interface{}, 0)
 
 		// 取值
 		value := reflect.ValueOf(m)
@@ -139,23 +134,38 @@ func MRecursion(m interface{}, new string, old string) (map[string]interface{}, 
 		}
 
 		// 开始遍历slice
-		value.Len()
 		for i := 0; i < value.Len(); i++ {
 			// 判断值是否为string
 			if value.Index(i).Elem().Kind() == reflect.String {
-				fmt.Println(value.Index(i))
 				// 将 val 转 string  替换字符串
 				v := strings.Replace(fmt.Sprintln(value.Index(i)), old, new, -1)
 				//存储值 除去两边空格
-				mySlice[i] = strings.TrimSpace(v)
+				mySlice = append(mySlice, strings.TrimSpace(v))
 			} else {
-				//暂时不做处理
-				mySlice[i] = value.Index(i)
-				//不是字符串说明需要再次遍历
 
-				//递归
-				/*filter, t := MRecursion(value.Index(i).Interface(), new, old)
-				mySlice[i] = filterMyMap(t, filter)*/
+				// 判断类型 根据类型 断言后赋值
+				switch value.Index(i).Elem().Kind() {
+				case reflect.Int:
+					mySlice = append(mySlice, value.Index(i).Interface().(int))
+				case reflect.Int8:
+					mySlice = append(mySlice, value.Index(i).Interface().(int8))
+				case reflect.Int16:
+					mySlice = append(mySlice, value.Index(i).Interface().(int16))
+				case reflect.Int32:
+					mySlice = append(mySlice, value.Index(i).Interface().(int32))
+				case reflect.Int64:
+					mySlice = append(mySlice, value.Index(i).Interface().(int64))
+				case reflect.Bool:
+					mySlice = append(mySlice, value.Index(i).Interface().(bool))
+				case reflect.Interface:
+					mySlice = append(mySlice, value.Index(i).Interface())
+				case reflect.Map:
+					// 遍历map 替换里面的值 然后再赋值
+					mySlice = append(mySlice, traverseMap(value.Index(i).Interface(), old, new))
+				default:
+					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
+					mySlice[i] = fmt.Sprintln(value.Index(i).Interface())
+				}
 
 			}
 		}
@@ -176,4 +186,41 @@ func filterMyMap(i int, myMap map[string]interface{}) interface{} {
 	} else {
 		return myMap["leeSlice"]
 	}
+}
+
+// 遍历嵌套的数据 map类型
+func traverseMap(m interface{}, old, new string) map[string]interface{} {
+
+	//定义一个map用来存储处理好的值
+	myMap := make(map[string]interface{})
+
+	// 取值
+	value := reflect.ValueOf(m)
+
+	// 判断是否是空值
+	if !value.IsValid() {
+		fmt.Printf("这个地方是一个nil:%v\n", value.IsNil())
+	}
+
+	// 判断是否为 map 类型
+	if value.Kind() == reflect.Map {
+
+		// 迭代值
+		val := value.MapRange()
+
+		// 遍历值
+		for val.Next() {
+
+			//将 key 转 string 除去两边空格
+			k := strings.TrimSpace(fmt.Sprintln(val.Key()))
+
+			// 将 val 转 string  替换字符串
+			v := strings.Replace(fmt.Sprintln(val.Value()), old, new, -1)
+			//存储值 除去两边空格
+			myMap[k] = strings.TrimSpace(v)
+		}
+
+	}
+
+	return myMap
 }
