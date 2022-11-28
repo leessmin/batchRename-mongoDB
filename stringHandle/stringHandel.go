@@ -36,6 +36,7 @@ func StringReplace(m []primitive.M, new string, old string) []primitive.M {
 					primitive.A:
 					{
 						filter, t := MRecursion(vv, old, new)
+						// MRecursion(vv, old, new)
 
 						myMap[key] = filterMyMap(t, filter)
 					}
@@ -103,7 +104,13 @@ func MRecursion(m interface{}, old string, new string) (map[string]interface{}, 
 				case reflect.Int32:
 					myMap[k] = val.Value().Interface().(int32)
 				case reflect.Int64:
-					myMap[k] = val.Value().Interface().(int64)
+					// 判断是否是primitive.DateTime 类型
+					switch val.Value().Interface().(type) {
+					case primitive.DateTime:
+						myMap[k] = val.Value().Interface().(primitive.DateTime)
+					default:
+						myMap[k] = val.Value().Interface().(int64)
+					}
 				case reflect.Bool:
 					myMap[k] = val.Value().Interface().(bool)
 				case reflect.Interface:
@@ -154,7 +161,13 @@ func MRecursion(m interface{}, old string, new string) (map[string]interface{}, 
 				case reflect.Int32:
 					mySlice = append(mySlice, value.Index(i).Interface().(int32))
 				case reflect.Int64:
-					mySlice = append(mySlice, value.Index(i).Interface().(int64))
+					// 判断是否是primitive.DateTime 类型
+					switch value.Index(i).Interface().(type) {
+					case primitive.DateTime:
+						mySlice = append(mySlice, value.Index(i).Interface().(primitive.DateTime))
+					default:
+						mySlice = append(mySlice, value.Index(i).Interface().(int64))
+					}
 				case reflect.Bool:
 					mySlice = append(mySlice, value.Index(i).Interface().(bool))
 				case reflect.Interface:
@@ -210,14 +223,48 @@ func traverseMap(m interface{}, old, new string) map[string]interface{} {
 
 		// 遍历值
 		for val.Next() {
-
 			//将 key 转 string 除去两边空格
 			k := strings.TrimSpace(fmt.Sprintln(val.Key()))
 
-			// 将 val 转 string  替换字符串
-			v := strings.Replace(fmt.Sprintln(val.Value()), old, new, -1)
-			//存储值 除去两边空格
-			myMap[k] = strings.TrimSpace(v)
+			// 判断类型
+			if val.Value().Elem().Kind() == reflect.String {
+
+				// 将 val 转 string  替换字符串
+				v := strings.Replace(fmt.Sprintln(val.Value()), old, new, -1)
+				//存储值 除去两边空格
+				myMap[k] = strings.TrimSpace(v)
+			} else {
+				// 不是字符串类型
+				// 判断类型 根据类型 断言后赋值
+				switch val.Value().Elem().Kind() {
+				case reflect.Int:
+					myMap[k] = val.Value().Interface().(int)
+				case reflect.Int8:
+					myMap[k] = val.Value().Interface().(int8)
+				case reflect.Int16:
+					myMap[k] = val.Value().Interface().(int16)
+				case reflect.Int32:
+					myMap[k] = val.Value().Interface().(int32)
+				case reflect.Int64:
+					// 判断是否是primitive.DateTime 类型
+					switch val.Value().Interface().(type) {
+					case primitive.DateTime:
+						myMap[k] = val.Value().Interface().(primitive.DateTime)
+					default:
+						myMap[k] = val.Value().Interface().(int64)
+					}
+				case reflect.Bool:
+					myMap[k] = val.Value().Interface().(bool)
+				case reflect.Interface:
+					myMap[k] = val.Value().Interface()
+				case reflect.Map:
+					myMap[k] = traverseMap(val.Value().Interface(), old, new)
+				default:
+					// TODO 这应该是一个坑，将 case没有匹配的类型暂时变成字符串
+					myMap[k] = fmt.Sprintln(val.Value().Interface())
+				}
+			}
+
 		}
 
 	}
